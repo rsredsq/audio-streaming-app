@@ -1,0 +1,6 @@
+{
+	"SourceDir": "/",
+	"DistributionDir": "/",
+	"BuildCommand": "yarn build",
+	"StartCommand": "yarn start"
+}
