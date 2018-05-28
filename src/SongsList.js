@@ -22,7 +22,11 @@ export default class SongsList extends React.Component {
 
   render() {
     return (
-      <Content refreshControl={<RefreshControl refreshing={false} />}>
+      <Content
+        refreshControl={
+          <RefreshControl onRefresh={this.props.onRefresh} refreshing={this.props.refreshing} />
+        }
+      >
         <List
           disableRightSwipe
           dataSource={this.state.dataSource}

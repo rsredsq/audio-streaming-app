@@ -8,6 +8,7 @@ import { Container } from 'native-base'
 import Header from './Header'
 import { FooterController, FooterInfo } from './Footer'
 import { PlayerController } from './AudioNotifications'
+import { formatSongTitle } from './utils'
 
 const MUSIC_FOLDER = 'music/'
 
@@ -25,6 +26,7 @@ const styles = StyleSheet.create({
 class App extends React.Component {
   state = {
     loading: true,
+    refreshing: false,
     music: [],
     currentSong: null,
     isPlaying: false,
@@ -44,13 +46,19 @@ class App extends React.Component {
     this.setState({ loading: false })
   }
 
+  componentWillUnmount() {
+    TrackPlayer.reset()
+    delete Hub.listeners.player
+  }
+
   async buildPlaylist() {
+    this.setState({ refreshing: true })
     const musicPaths = await Storage.list(MUSIC_FOLDER)
     const musicUrls = await Promise.all(musicPaths.map(it => Storage.get(it.key)))
 
     const tracks = musicPaths.map((it, index) => ({
       id: it.key,
-      title: it.key.substring(MUSIC_FOLDER.length),
+      title: formatSongTitle(it.key, MUSIC_FOLDER.length),
       artist: '',
       url: musicUrls[index],
     }))
@@ -62,11 +70,12 @@ class App extends React.Component {
     this.setState({
       music: tracks,
       currentSong: tracks[0],
+      refreshing: false,
     })
   }
 
   playSong = song => {
-    TrackPlayer.skip(song.id)
+    if (this.state.currentSong !== song) TrackPlayer.skip(song.id)
     TrackPlayer.play()
     this.setState({ currentSong: song, isPlaying: true })
   }
@@ -85,7 +94,7 @@ class App extends React.Component {
   }
 
   deleteSong = song => {
-    Storage.remove(MUSIC_FOLDER + song.title).then(res => {
+    Storage.remove(song.id).then(res => {
       this.buildPlaylist()
     })
   }
@@ -116,6 +125,8 @@ class App extends React.Component {
           currentSong={this.state.currentSong}
           isPlaying={this.state.isPlaying}
           onDelete={id => this.deleteSong(this.state.music[id])}
+          onRefresh={() => this.buildPlaylist()}
+          refreshing={this.state.refreshing}
         />
         <FooterController
           onPlay={this.playSong}
