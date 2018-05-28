@@ -1,6 +1,7 @@
 import React from 'react'
 import { ListView, RefreshControl } from 'react-native'
 import { Body, Button, Content, Icon, List, ListItem, Right, Text } from 'native-base'
+import isEqual from 'lodash/isEqual'
 
 export default class SongsList extends React.Component {
   constructor(props) {
@@ -8,7 +9,7 @@ export default class SongsList extends React.Component {
     this.state = {
       dataSource: new ListView.DataSource({
         rowHasChanged: (r1, r2) => {
-          return true
+          return isEqual(r1, r2)
         },
       }).cloneWithRows(props.music),
     }

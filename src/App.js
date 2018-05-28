@@ -6,7 +6,7 @@ import SongsList from './SongsList'
 import TrackPlayer from 'react-native-track-player'
 import { Container } from 'native-base'
 import Header from './Header'
-import { FooterController, FooterInfo } from './Footer'
+import { FooterController } from './Footer'
 import { PlayerController } from './AudioNotifications'
 import { formatSongTitle } from './utils'
 
@@ -136,7 +136,6 @@ class App extends React.Component {
           currentSong={this.state.currentSong}
           isPlaying={this.state.isPlaying}
         />
-        <FooterInfo />
       </Container>
     )
   }
