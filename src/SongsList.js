@@ -1,21 +1,6 @@
 import React from 'react'
 import { ListView, RefreshControl } from 'react-native'
-import {
-  Container,
-  Header,
-  Content,
-  Button,
-  Icon,
-  List,
-  ListItem,
-  Text,
-  Right,
-  Body,
-  Title,
-  Left,
-  Spinner,
-} from 'native-base'
-import { Auth } from 'aws-amplify'
+import { Body, Button, Content, Icon, List, ListItem, Right, Text } from 'native-base'
 
 export default class SongsList extends React.Component {
   constructor(props) {
@@ -51,18 +36,22 @@ export default class SongsList extends React.Component {
                   dark
                   bordered
                   onPress={() => {
-                    this.props.currentlyPlaying === song
+                    this.props.currentSong === song && this.props.isPlaying
                       ? this.props.onPause(song)
                       : this.props.onPlay(song)
                   }}
                 >
-                  <Icon name={this.props.currentlyPlaying === song ? 'pause' : 'play'} />
+                  <Icon
+                    name={
+                      this.props.currentSong === song && this.props.isPlaying ? 'pause' : 'play'
+                    }
+                  />
                 </Button>
               </Right>
             </ListItem>
           )}
           renderRightHiddenRow={(data, secId, rowId, rowMap) => (
-            <Button full danger onPress={_ => this.deleteRow(secId, rowId, rowMap)}>
+            <Button full danger onPress={() => this.props.onDelete(rowId)}>
               <Icon active name="trash" />
             </Button>
           )}

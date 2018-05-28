@@ -1,11 +1,13 @@
 import React from 'react'
-import { ActivityIndicator, ProgressViewIOS, StyleSheet, View } from 'react-native'
-import { Auth, Storage } from 'aws-amplify'
+import { ActivityIndicator, StyleSheet, View } from 'react-native'
+import { Auth, Hub, Storage } from 'aws-amplify'
 import { withAuthenticator } from 'aws-amplify-react-native'
 import SongsList from './SongsList'
 import TrackPlayer from 'react-native-track-player'
-import { Body, Button, Container, Footer, Header, Icon, Left, Right, Title } from 'native-base'
-import TextTicker from 'react-native-text-ticker'
+import { Container } from 'native-base'
+import Header from './Header'
+import { FooterController, FooterInfo } from './Footer'
+import { PlayerController } from './AudioNotifications'
 
 const MUSIC_FOLDER = 'music/'
 
@@ -16,7 +18,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F5FCFF',
+    backgroundColor: '#fff',
   },
 })
 
@@ -24,11 +26,21 @@ class App extends React.Component {
   state = {
     loading: true,
     music: [],
-    currentlyPlaying: null,
+    currentSong: null,
+    isPlaying: false,
   }
 
+  playerController = PlayerController(
+    () => this.playSong(this.state.currentSong),
+    () => this.pauseSong(),
+    () => this.playPrevSong(),
+    () => this.playNextSong(),
+    track => this.onTrackChange(track)
+  )
+
   async componentDidMount() {
-    await Promise.all([TrackPlayer.setupPlayer(), this.buildPlaylist()])
+    await Promise.all([TrackPlayer.setupPlayer({}), this.buildPlaylist()])
+    Hub.listen('player', this.playerController)
     this.setState({ loading: false })
   }
 
@@ -39,32 +51,51 @@ class App extends React.Component {
     const tracks = musicPaths.map((it, index) => ({
       id: it.key,
       title: it.key.substring(MUSIC_FOLDER.length),
-      artist: 'asd',
+      artist: '',
       url: musicUrls[index],
     }))
+
+    TrackPlayer.reset()
 
     await TrackPlayer.add(tracks)
 
     this.setState({
       music: tracks,
+      currentSong: tracks[0],
     })
   }
 
   playSong = song => {
     TrackPlayer.skip(song.id)
     TrackPlayer.play()
-    this.setState({ currentlyPlaying: song })
+    this.setState({ currentSong: song, isPlaying: true })
   }
 
-  pauseSong = song => {
+  playPrevSong = () => {
+    TrackPlayer.skipToPrevious().catch(() => TrackPlayer.play())
+  }
+
+  playNextSong = () => {
+    TrackPlayer.skipToNext().catch(() => TrackPlayer.play())
+  }
+
+  pauseSong = () => {
     TrackPlayer.pause()
-    this.setState({ currentlyPlaying: null })
+    this.setState({ isPlaying: false })
   }
 
   deleteSong = song => {
     Storage.remove(MUSIC_FOLDER + song.title).then(res => {
       this.buildPlaylist()
     })
+  }
+
+  onTrackChange = trackName => {
+    if (!trackName) TrackPlayer.play()
+    const song = this.state.music.find(val => val.id === trackName)
+    if (song) {
+      this.setState({ currentSong: song })
+    }
   }
 
   render() {
@@ -77,62 +108,25 @@ class App extends React.Component {
     }
     return (
       <Container>
-        <Header>
-          <Body>
-            <Title>AudioPlayer AWS Demo</Title>
-          </Body>
-          <Right>
-            <Button transparent dark onPress={() => Auth.signOut()}>
-              <Icon name="sign-out" type="FontAwesome" />
-            </Button>
-          </Right>
-        </Header>
-
+        <Header onSignOut={() => Auth.signOut()} />
         <SongsList
           music={this.state.music}
           onPlay={this.playSong}
           onPause={this.pauseSong}
-          currentlyPlaying={this.state.currentlyPlaying}
+          currentSong={this.state.currentSong}
+          isPlaying={this.state.isPlaying}
+          onDelete={id => this.deleteSong(this.state.music[id])}
         />
-        <Footer>
-          <Left>
-            <Button transparent dark>
-              <Icon name="ios-skip-backward" />
-            </Button>
-          </Left>
-          <Body style={{ flex: 4 }}>
-            <TextTicker
-              style={{ fontSize: 24 }}
-              duration={7000}
-              loop
-              bounce
-              repeatSpacer={50}
-              marqueeDelay={1000}
-            >
-              {this.state.currentlyPlaying && this.state.currentlyPlaying.title}
-            </TextTicker>
-            {/*<MyPlayerBar />*/}
-          </Body>
-          <Right>
-            <Button transparent dark>
-              <Icon name="ios-skip-forward" />
-            </Button>
-          </Right>
-        </Footer>
+        <FooterController
+          onPlay={this.playSong}
+          onPause={this.pauseSong}
+          onPrev={this.playPrevSong}
+          onNext={this.playNextSong}
+          currentSong={this.state.currentSong}
+          isPlaying={this.state.isPlaying}
+        />
+        <FooterInfo />
       </Container>
-    )
-  }
-}
-
-class MyPlayerBar extends TrackPlayer.ProgressComponent {
-  render() {
-    return (
-      <View style={{ flex: 1 }}>
-        {/*<Text>{formatTime(this.state.position)}</Text>*/}
-        <ProgressViewIOS progress={this.getProgress()}>
-          <ProgressViewIOS progress={this.getBufferedProgress()} progressTintColor="#ff00ff" />
-        </ProgressViewIOS>
-      </View>
     )
   }
 }
