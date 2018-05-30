@@ -9,7 +9,7 @@ export default class SongsList extends React.Component {
     this.state = {
       dataSource: new ListView.DataSource({
         rowHasChanged: (r1, r2) => {
-          return isEqual(r1, r2)
+          return true
         },
       }).cloneWithRows(props.music),
     }
